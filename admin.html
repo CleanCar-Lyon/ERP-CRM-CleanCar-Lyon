@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WashDesk — Back Office Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+--dark:#0a0e1a;
+--darker:#060810;
+--card:#111827;
+--card2:#1a2236;
+--border:rgba(255,255,255,.08);
+--blue:#1a6dff;
+--blue2:#0052e0;
+--cyan:#00d4ff;
+--green:#00c97a;
+--greenBg:rgba(0,201,122,.1);
+--red:#ff4d6a;
+--redBg:rgba(255,77,106,.1);
+--gold:#f5a623;
+--goldBg:rgba(245,166,35,.1);
+--gray:#8892a4;
+--white:#fff;
+--text:#e8eaf0;
+--text2:#a0aab8;
+}
+html{scroll-behavior:smooth;}
+body{background:var(--dark);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:var(--darker);display:flex;align-items:center;justify-content:center;z-index:100;}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:400px;text-align:center;}
+.login-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;color:var(--white);margin-bottom:4px;}
+.login-logo span{color:var(--cyan);}
+.login-badge{display:inline-block;background:var(--goldBg);color:var(--gold);border:1px solid rgba(245,166,35,.3);border-radius:6px;padding:3px 10px;font-size:.72rem;font-weight:600;margin-bottom:24px;}
+.login-input{width:100%;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:inherit;font-size:.9rem;margin-bottom:12px;transition:border-color .2s;}
+.login-input:focus{outline:none;border-color:var(--blue);}
+.login-input::placeholder{color:#555;}
+.login-btn{width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.login-btn:hover{background:var(--blue2);}
+.login-err{color:var(--red);font-size:.8rem;margin-top:10px;min-height:18px;}
+.login-note{font-size:.75rem;color:var(--gray);margin-top:16px;}
+
+/* ── LAYOUT ── */
+#app{display:none;}
+.layout{display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;background:var(--darker);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:50;}
+.sb-logo{padding:20px 18px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border);}
+.sb-logo .lb{width:30px;height:30px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:.78rem;}
+.sb-logo .ln{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;}
+.sb-logo .ln span{color:var(--cyan);}
+.sb-logo .admin-tag{font-size:.6rem;background:var(--goldBg);color:var(--gold);padding:2px 6px;border-radius:4px;margin-left:4px;}
+.sb-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;}
+.sb-btn{display:flex;align-items:center;gap:9px;padding:9px 12px;border:none;background:none;color:var(--gray);font-family:inherit;font-size:.84rem;cursor:pointer;border-radius:8px;width:100%;transition:all .15s;text-align:left;}
+.sb-btn:hover{background:rgba(255,255,255,.05);color:var(--white);}
+.sb-btn.active{background:rgba(26,109,255,.15);color:var(--white);}
+.sb-btn .ico{font-size:1rem;width:20px;text-align:center;}
+.sb-divider{height:1px;background:var(--border);margin:8px 10px;}
+.sb-bottom{padding:12px 10px;border-top:1px solid var(--border);}
+.sb-user{font-size:.75rem;color:var(--gray);padding:8px 12px;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ── MAIN ── */
+.main{margin-left:220px;flex:1;padding:28px 32px;}
+.page-header{margin-bottom:28px;}
+.page-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;letter-spacing:-.5px;}
+.page-title span{color:var(--cyan);}
+.page-sub{color:var(--gray);font-size:.88rem;margin-top:4px;}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 22px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.blue::before{background:var(--blue);}
+.stat-card.green::before{background:var(--green);}
+.stat-card.gold::before{background:var(--gold);}
+.stat-card.red::before{background:var(--red);}
+.stat-card.cyan::before{background:var(--cyan);}
+.stat-card.purple::before{background:#a855f7;}
+.stat-ico{font-size:1.5rem;margin-bottom:10px;}
+.stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:2rem;line-height:1;}
+.stat-label{font-size:.78rem;color:var(--gray);margin-top:5px;}
+.stat-trend{font-size:.75rem;margin-top:6px;font-weight:500;}
+.stat-trend.up{color:var(--green);}
+.stat-trend.down{color:var(--red);}
+.stat-trend.neutral{color:var(--gray);}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px;}
+.card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+
+/* ── TABLE ── */
+.tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.tbl-toolbar{padding:14px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.tbl-search{flex:1;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:7px;color:var(--white);font-family:inherit;font-size:.85rem;}
+.tbl-search:focus{outline:none;border-color:var(--blue);}
+.tbl-search::placeholder{color:#555;}
+.tbl-filter{padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:7px;color:var(--white);font-family:inherit;font-size:.83rem;cursor:pointer;}
+.tbl-scroll{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:11px 14px;text-align:left;font-size:.7rem;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--darker);}
+tbody td{padding:12px 14px;font-size:.84rem;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+tbody tr:hover{background:rgba(255,255,255,.02);}
+tbody tr:last-child td{border-bottom:none;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:5px;font-size:.7rem;font-weight:600;}
+.b-pro{background:var(--goldBg);color:var(--gold);}
+.b-free{background:rgba(255,255,255,.06);color:var(--gray);}
+.b-exp{background:var(--redBg);color:var(--red);}
+.b-new{background:rgba(0,212,255,.1);color:var(--cyan);}
+.b-active{background:var(--greenBg);color:var(--green);}
+
+/* ── BUTTONS ── */
+.btn{padding:7px 14px;border-radius:7px;border:none;font-family:inherit;font-size:.82rem;font-weight:500;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px;}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-blue:hover{background:var(--blue2);}
+.btn-green{background:var(--greenBg);color:var(--green);border:1px solid rgba(0,201,122,.2);}
+.btn-green:hover{background:rgba(0,201,122,.2);}
+.btn-gold{background:var(--goldBg);color:var(--gold);border:1px solid rgba(245,166,35,.2);}
+.btn-gold:hover{background:rgba(245,166,35,.2);}
+.btn-red{background:var(--redBg);color:var(--red);border:1px solid rgba(255,77,106,.2);}
+.btn-red:hover{background:rgba(255,77,106,.2);}
+.btn-ghost{background:rgba(255,255,255,.05);color:var(--gray);border:1px solid var(--border);}
+.btn-ghost:hover{background:rgba(255,255,255,.08);color:var(--white);}
+.row-actions{display:flex;gap:5px;align-items:center;}
+
+/* ── USER MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;}
+.modal-close{background:none;border:none;color:var(--gray);font-size:1.4rem;cursor:pointer;line-height:1;}
+.modal-close:hover{color:var(--white);}
+.modal-body{padding:24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:.75rem;color:var(--gray);margin-bottom:5px;font-weight:500;}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:7px;color:var(--white);font-family:inherit;font-size:.88rem;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue);}
+.field textarea{resize:vertical;min-height:80px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* ── EXPIRY ALERT ── */
+.alert{padding:12px 16px;border-radius:8px;font-size:.83rem;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.alert-gold{background:var(--goldBg);border:1px solid rgba(245,166,35,.2);color:var(--gold);}
+.alert-red{background:var(--redBg);border:1px solid rgba(255,77,106,.2);color:var(--red);}
+.alert-green{background:var(--greenBg);border:1px solid rgba(0,201,122,.2);color:var(--green);}
+
+/* ── ACTIVITY BAR ── */
+.activity-bar{height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:4px;}
+.activity-fill{height:100%;border-radius:3px;background:var(--blue);}
+
+/* ── CHART ── */
+.mini-chart{display:flex;align-items:flex-end;gap:4px;height:60px;margin-top:8px;}
+.mini-bar{flex:1;background:rgba(26,109,255,.3);border-radius:3px 3px 0 0;min-height:4px;transition:background .2s;}
+.mini-bar:hover{background:var(--blue);}
+.mini-bar-label{font-size:.6rem;color:var(--gray);text-align:center;margin-top:4px;}
+
+/* ── PAGES ── */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:.85rem;z-index:999;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.ok{border-color:rgba(0,201,122,.3);color:var(--green);}
+.toast.err{border-color:rgba(255,77,106,.3);color:var(--red);}
+
+/* ── EMPTY STATE ── */
+.empty{padding:60px 20px;text-align:center;color:var(--gray);}
+.empty .eico{font-size:2.5rem;margin-bottom:12px;}
+
+@media(max-width:768px){
+.sidebar{display:none;}
+.main{margin-left:0;padding:16px;}
+.stats-grid{grid-template-columns:1fr 1fr;}
+.card-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+<div class="login-box">
+<div class="login-logo">Wash<span>Desk</span></div>
+<div class="login-badge">🔑 Back Office Admin</div>
+<input class="login-input" id="adm-email" type="email" placeholder="Email administrateur">
+<input class="login-input" id="adm-pass" type="password" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')doAdminLogin()">
+<button class="login-btn" onclick="doAdminLogin()">Accéder au back office</button>
+<div class="login-err" id="adm-err"></div>
+<p class="login-note">Accès réservé aux administrateurs WashDesk</p>
+</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+<div class="layout">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+<div class="sb-logo">
+<div class="lb">WD</div>
+<div class="ln">Wash<span>Desk</span> <span class="admin-tag">ADMIN</span></div>
+</div>
+<div class="sb-nav">
+<button class="sb-btn active" onclick="goPage('dashboard')" data-p="dashboard"><span class="ico">📊</span>Tableau de bord</button>
+<button class="sb-btn" onclick="goPage('users')" data-p="users"><span class="ico">👥</span>Utilisateurs</button>
+<button class="sb-btn" onclick="goPage('expiring')" data-p="expiring"><span class="ico">⏰</span>Expirations</button>
+<button class="sb-btn" onclick="goPage('revenue')" data-p="revenue"><span class="ico">💰</span>Revenus</button>
+<button class="sb-btn" onclick="goPage('codes')" data-p="codes"><span class="ico">🎟️</span>Codes d'accès</button>
+<button class="sb-btn" onclick="goPage('messages')" data-p="messages"><span class="ico">💬</span>Messages <span id="msg-badge" style="display:none;background:#ff4d6a;color:#fff;border-radius:100px;font-size:.65rem;padding:1px 6px;margin-left:auto;">0</span></button>
+<button class="sb-btn" onclick="goPage('popups')" data-p="popups"><span class="ico">📢</span>Pop-ups</button>
+<div class="sb-divider"></div>
+<button class="sb-btn" onclick="goPage('settings')" data-p="settings"><span class="ico">⚙️</span>Paramètres</button>
+</div>
+<div class="sb-bottom">
+<div class="sb-user" id="sb-user-email"></div>
+<button class="sb-btn btn-ghost" style="width:100%" onclick="doAdminLogout()"><span class="ico">🚪</span>Déconnexion</button>
+</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="p-dashboard">
+<div class="page-header">
+<div class="page-title">Tableau de <span>bord</span></div>
+<div class="page-sub" id="dash-lastupdate">Chargement...</div>
+</div>
+
+<div class="stats-grid">
+<div class="stat-card blue"><div class="stat-ico">👥</div><div class="stat-val" id="s-total">—</div><div class="stat-label">Utilisateurs total</div><div class="stat-trend neutral" id="s-total-trend"></div></div>
+<div class="stat-card green"><div class="stat-ico">⭐</div><div class="stat-val" id="s-pro">—</div><div class="stat-label">Abonnés Pro</div><div class="stat-trend up" id="s-pro-trend"></div></div>
+<div class="stat-card gold"><div class="stat-ico">💰</div><div class="stat-val" id="s-mrr">—</div><div class="stat-label">MRR estimé</div><div class="stat-trend up" id="s-mrr-trend"></div></div>
+<div class="stat-card cyan"><div class="stat-ico">🆕</div><div class="stat-val" id="s-new">—</div><div class="stat-label">Nouveaux ce mois</div><div class="stat-trend neutral" id="s-new-trend"></div></div>
+<div class="stat-card red"><div class="stat-ico">⏰</div><div class="stat-val" id="s-exp">—</div><div class="stat-label">Expirations sous 7j</div><div class="stat-trend down" id="s-exp-trend"></div></div>
+<div class="stat-card purple"><div class="stat-ico">📈</div><div class="stat-val" id="s-conv">—</div><div class="stat-label">Taux conversion Free→Pro</div><div class="stat-trend up" id="s-conv-trend"></div></div>
+</div>
+
+<div class="card-grid">
+<div class="card">
+<div class="card-title">📊 Répartition des plans</div>
+<canvas id="chart-plans" height="160"></canvas>
+</div>
+<div class="card">
+<div class="card-title">📅 Inscriptions (6 derniers mois)</div>
+<div id="chart-signups" style="display:flex;flex-direction:column;gap:4px;"></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">🆕 Derniers inscrits <button class="btn btn-ghost" onclick="goPage('users')" style="font-size:.75rem;">Voir tous →</button></div>
+<div id="dash-recent-users"></div>
+</div>
+</div>
+
+<!-- USERS -->
+<div class="page" id="p-users">
+<div class="page-header">
+<div class="page-title">Gestion des <span>utilisateurs</span></div>
+<div class="page-sub" id="users-count">Chargement...</div>
+</div>
+<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+<button class="btn btn-blue" onclick="exportCSV()">📥 Exporter CSV</button>
+<button class="btn btn-ghost" onclick="loadUsers()">🔄 Actualiser</button>
+</div>
+<div class="tbl-wrap">
+<div class="tbl-toolbar">
+<input class="tbl-search" id="user-search" placeholder="Rechercher par nom, email, entreprise..." oninput="filterUsers()">
+<select class="tbl-filter" id="user-filter-plan" onchange="filterUsers()">
+<option value="">Tous les plans</option>
+<option value="free">Gratuit</option>
+<option value="pro">Pro</option>
+</select>
+<select class="tbl-filter" id="user-filter-month" onchange="filterUsers()">
+<option value="">Tous les mois</option>
+</select>
+</div>
+<div class="tbl-scroll">
+<table>
+<thead><tr>
+<th>Utilisateur</th>
+<th>Entreprise</th>
+<th>Email</th>
+<th>Téléphone</th>
+<th>Plan</th>
+<th>Inscription</th>
+<th>Expiration</th>
+<th>Activité</th>
+<th>Actions</th>
+</tr></thead>
+<tbody id="users-tb"></tbody>
+</table>
+</div>
+</div>
+</div>
+
+<!-- EXPIRING -->
+<div class="page" id="p-expiring">
+<div class="page-header">
+<div class="page-title">Essais <span>Pro expirants</span></div>
+<div class="page-sub">Utilisateurs dont l'essai Pro expire dans les 30 prochains jours</div>
+</div>
+<div id="expiring-content"></div>
+</div>
+
+<!-- REVENUE -->
+<div class="page" id="p-revenue">
+<div class="page-header">
+<div class="page-title">Suivi des <span>revenus</span></div>
+<div class="page-sub">Estimation basée sur les abonnements Pro actifs</div>
+</div>
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+<div class="stat-card green"><div class="stat-ico">💰</div><div class="stat-val" id="rev-mrr">—</div><div class="stat-label">MRR (mensuel)</div></div>
+<div class="stat-card blue"><div class="stat-ico">📅</div><div class="stat-val" id="rev-arr">—</div><div class="stat-label">ARR (annuel estimé)</div></div>
+<div class="stat-card gold"><div class="stat-ico">💳</div><div class="stat-val" id="rev-stripe">—</div><div class="stat-label">Après frais Stripe (~2,8%)</div></div>
+</div>
+<div class="card" style="margin-top:16px;">
+<div class="card-title">📋 Abonnés Pro actifs</div>
+<div id="rev-list"></div>
+</div>
+</div>
+
+<!-- MESSAGES -->
+<div class="page" id="p-messages">
+<div class="page-header">
+<div class="page-title">Messages <span>reçus</span></div>
+<div class="page-sub">Demandes de contact depuis la landing page WashDesk</div>
+</div>
+<div style="display:flex;gap:10px;margin-bottom:16px;">
+<button class="btn btn-ghost" onclick="loadMessages()">🔄 Actualiser</button>
+</div>
+<div id="messages-list"></div>
+</div>
+
+<!-- POPUPS -->
+<div class="page" id="p-popups">
+<div class="page-header">
+<div class="page-title">Pop-ups <span>utilisateurs</span></div>
+<div class="page-sub">Créez des messages à afficher dans l'application de vos utilisateurs</div>
+</div>
+<div style="display:flex;gap:10px;margin-bottom:20px;">
+<button class="btn btn-blue" onclick="openPopupModal()">+ Créer un pop-up</button>
+<button class="btn btn-ghost" onclick="loadPopups()">🔄 Actualiser</button>
+</div>
+<div id="popups-list"></div>
+</div>
+
+<!-- CODES D'ACCÈS -->
+<div class="page" id="p-codes">
+<div class="page-header">
+<div class="page-title">Codes d'<span>accès</span></div>
+<div class="page-sub">Créez des codes d'activation pour offrir un accès gratuit à vos utilisateurs</div>
+</div>
+<div style="display:flex;gap:10px;margin-bottom:20px;">
+<button class="btn btn-blue" onclick="openCodeModal()">+ Créer un code</button>
+<button class="btn btn-ghost" onclick="loadCodes()">🔄 Actualiser</button>
+</div>
+<div id="codes-list"></div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="p-settings">
+<div class="page-header">
+<div class="page-title"><span>Paramètres</span> admin</div>
+</div>
+<div class="card" style="max-width:500px;margin-bottom:16px;">
+<div class="card-title">🔑 Administrateurs autorisés</div>
+<p style="font-size:.83rem;color:var(--gray);margin-bottom:16px;">Seuls ces emails peuvent accéder au back office.</p>
+<div id="admin-emails-list" style="margin-bottom:12px;"></div>
+<div style="display:flex;gap:8px;">
+<input class="login-input" id="new-admin-email" placeholder="nouvel@admin.fr" style="margin:0;flex:1;">
+<button class="btn btn-blue" onclick="addAdminEmail()">+ Ajouter</button>
+</div>
+</div>
+<div class="card" style="max-width:500px;">
+<div class="card-title">💬 Message aux utilisateurs</div>
+<p style="font-size:.83rem;color:var(--gray);margin-bottom:12px;">Affiché sur la page de connexion WashDesk.</p>
+<div class="field"><label>Message (optionnel)</label><textarea id="global-msg" placeholder="Ex: Maintenance prévue ce soir de 22h à 23h..."></textarea></div>
+<button class="btn btn-blue" onclick="saveGlobalMsg()">💾 Enregistrer</button>
+</div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+</div><!-- /app -->
+
+<!-- USER MODAL -->
+<div class="modal-overlay" id="user-modal">
+<div class="modal">
+<div class="modal-header">
+<div class="modal-title" id="modal-user-name">Fiche utilisateur</div>
+<button class="modal-close" onclick="closeModal()">×</button>
+</div>
+<div class="modal-body">
+<div id="modal-alerts"></div>
+<div class="field-row">
+<div class="field"><label>Prénom</label><input id="mu-prenom" readonly></div>
+<div class="field"><label>Nom</label><input id="mu-nom" readonly></div>
+</div>
+<div class="field"><label>Email</label><input id="mu-email" readonly></div>
+<div class="field-row">
+<div class="field"><label>Téléphone</label><input id="mu-tel" readonly></div>
+<div class="field"><label>Entreprise</label><input id="mu-entreprise" readonly></div>
+</div>
+<div class="field"><label>Date d'inscription</label><input id="mu-date" readonly></div>
+<hr style="border-color:var(--border);margin:16px 0;">
+<div class="field-row">
+<div class="field"><label>Plan actuel</label>
+<select id="mu-plan">
+<option value="free">Gratuit</option>
+<option value="pro">Pro</option>
+</select>
+</div>
+<div class="field"><label>Expiration Pro</label><input id="mu-expiry" type="date"></div>
+</div>
+<div class="field"><label>Notes admin (privées)</label><textarea id="mu-notes" placeholder="Notes internes sur cet utilisateur..."></textarea></div>
+<hr style="border-color:var(--border);margin:16px 0;">
+<div class="card-title" style="font-size:.85rem;margin-bottom:12px;">📊 Activité Firebase</div>
+<div id="mu-activity" style="display:flex;flex-wrap:wrap;gap:10px;">
+<span style="font-size:.8rem;color:var(--gray)">Chargement...</span>
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn btn-red" onclick="deleteUser()">🗑 Supprimer</button>
+<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+<button class="btn btn-blue" onclick="saveUser()">💾 Enregistrer</button>
+</div>
+</div>
+</div>
+
+<!-- EMAIL MODAL -->
+<div class="modal-overlay" id="email-modal">
+<div class="modal">
+<div class="modal-header">
+<div class="modal-title">📧 Envoyer un email</div>
+<button class="modal-close" onclick="closeEmailModal()">×</button>
+</div>
+<div class="modal-body">
+<div class="field"><label>Destinataire</label><input id="em-to" readonly></div>
+<div class="field"><label>Objet</label><input id="em-subject" placeholder="Objet de l'email"></div>
+<div class="field"><label>Message</label><textarea id="em-body" rows="8" placeholder="Votre message..."></textarea></div>
+</div>
+<div class="modal-footer">
+<button class="btn btn-ghost" onclick="closeEmailModal()">Annuler</button>
+<button class="btn btn-blue" onclick="sendEmail()">📧 Ouvrir dans ma boite mail</button>
+</div>
+</div>
+</div>
+
+<!-- POPUP MODAL -->
+<div class="modal-overlay" id="popup-modal">
+<div class="modal">
+<div class="modal-header">
+<div class="modal-title" id="popup-modal-title">Créer un pop-up</div>
+<button class="modal-close" onclick="closePopupModal()">×</button>
+</div>
+<div class="modal-body">
+<div class="field"><label>Type</label>
+<select id="pm-type">
+<option value="welcome">Bienvenue (1ère connexion)</option>
+<option value="info">Information générale</option>
+</select></div>
+<div class="field"><label>Titre</label><input id="pm-title" placeholder="Ex: Nouvelle fonctionnalité !"></div>
+<div class="field"><label>Message</label><textarea id="pm-message" rows="5" placeholder="Votre message..."></textarea></div>
+<div class="field"><label>Plans ciblés</label>
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;"><input type="checkbox" class="pm-plan" value="starter" style="accent-color:var(--primary);">Starter</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;"><input type="checkbox" class="pm-plan" value="basic" style="accent-color:var(--primary);">Basic</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;"><input type="checkbox" class="pm-plan" value="pro" style="accent-color:var(--primary);">Pro</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;"><input type="checkbox" class="pm-plan" value="proplus" style="accent-color:var(--primary);">Pro+</label>
+</div></div>
+<div class="field-row">
+<div class="field"><label>Nombre d'affichages max</label><input id="pm-max-times" type="number" value="1" min="1"></div>
+<div class="field"><label>Page d'affichage</label>
+<select id="pm-page">
+<option value="">Toutes les pages</option>
+<option value="accueil">Accueil</option>
+<option value="prestations">Prestations</option>
+<option value="factures">Factures</option>
+<option value="admin">Mon abonnement</option>
+</select></div>
+</div>
+<div class="field-row">
+<div class="field"><label>Date de début (optionnel)</label><input id="pm-start" type="date"></div>
+<div class="field"><label>Date de fin (optionnel)</label><input id="pm-end" type="date"></div>
+</div>
+<div class="field" style="flex-direction:row;align-items:center;gap:8px;">
+<input type="checkbox" id="pm-active" checked style="accent-color:var(--primary);width:16px;height:16px;">
+<label for="pm-active" style="font-size:.85rem;cursor:pointer;">Pop-up actif</label>
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn btn-ghost" onclick="closePopupModal()">Annuler</button>
+<button class="btn btn-blue" onclick="savePopup()">Enregistrer</button>
+</div>
+</div>
+</div>
+
+<!-- MODAL CODE D'ACCÈS -->
+<div class="modal-overlay" id="code-modal">
+<div class="modal">
+<div class="modal-header">
+<div class="modal-title" id="code-modal-title">Créer un code d'accès</div>
+<button class="modal-close" onclick="closeCodeModal()">×</button>
+</div>
+<div class="modal-body">
+<div class="field">
+<label>Code personnalisé (ou généré automatiquement)</label>
+<div style="display:flex;gap:8px;">
+<input id="cm-code" placeholder="Ex: WASH-PRO-2026" style="flex:1;text-transform:uppercase;">
+<button class="btn btn-ghost" onclick="generateCode()">🎲 Générer</button>
+</div>
+</div>
+<div class="field">
+<label>Plan accordé</label>
+<select id="cm-plan">
+<option value="basic">Basic — 14,99€/mois</option>
+<option value="pro" selected>Pro — 24,99€/mois</option>
+<option value="proplus">Pro+ — 34,99€/mois</option>
+</select>
+</div>
+<div class="field">
+<label>Durée d'accès</label>
+<select id="cm-duree">
+<option value="30">1 mois</option>
+<option value="90">3 mois</option>
+<option value="180">6 mois</option>
+<option value="365">1 an</option>
+<option value="0">Illimité</option>
+</select>
+</div>
+<div class="field">
+<label>Nombre d'utilisations max</label>
+<select id="cm-uses">
+<option value="1" selected>1 utilisation (unique)</option>
+<option value="5">5 utilisations</option>
+<option value="10">10 utilisations</option>
+<option value="0">Illimité</option>
+</select>
+</div>
+<div class="field">
+<label>Note (privée)</label>
+<input id="cm-note" placeholder="Ex: Code pour Jean Dupont - CleanCar Lyon">
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn btn-ghost" onclick="closeCodeModal()">Annuler</button>
+<button class="btn btn-blue" onclick="saveCode()">Créer le code</button>
+</div>
+</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// FIREBASE CONFIG
+// ═══════════════════════════════════════
+const firebaseConfig={
+apiKey:"AIzaSyAcY6OFPxuvJrxvd0SudOy_EIvfc3XnKnM",
+authDomain:"cleancar-lyon.firebaseapp.com",
+projectId:"cleancar-lyon",
+storageBucket:"cleancar-lyon.firebasestorage.app",
+messagingSenderId:"1008040089051",
+appId:"1:1008040089051:web:b050481ca068e3faa083fe"
+};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+const db=firebase.firestore();
+
+// ═══════════════════════════════════════
+// ADMIN EMAILS AUTORISÉS
+// ═══════════════════════════════════════
+const DEFAULT_ADMIN_EMAILS=['lilian.bulliod.lb@gmail.com','lilian.bulliod@icloud.com','contact@cleancar-lyon.com'];
+function getAdminEmails(){
+const saved=localStorage.getItem('washdesk_admin_emails');
+return saved?JSON.parse(saved):DEFAULT_ADMIN_EMAILS;
+}
+
+// ═══════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════
+function doAdminLogin(){
+const email=document.getElementById('adm-email').value.trim();
+const pass=document.getElementById('adm-pass').value;
+const err=document.getElementById('adm-err');
+err.textContent='';
+if(!email||!pass){err.textContent='Email et mot de passe requis';return;}
+if(!getAdminEmails().includes(email)){err.textContent='Accès non autorisé pour cet email';return;}
+auth.signInWithEmailAndPassword(email,pass)
+.then(()=>{})
+.catch(e=>{
+const msgs={'auth/wrong-password':'Mot de passe incorrect','auth/user-not-found':'Email introuvable','auth/invalid-credential':'Identifiants incorrects','auth/too-many-requests':'Trop de tentatives'};
+err.textContent=msgs[e.code]||'Erreur de connexion';
+});
+}
+function doAdminLogout(){auth.signOut();}
+
+auth.onAuthStateChanged(user=>{
+if(user&&getAdminEmails().includes(user.email)){
+document.getElementById('login-screen').style.display='none';
+document.getElementById('app').style.display='block';
+document.getElementById('sb-user-email').textContent=user.email;
+loadAll();
+}else if(user){
+auth.signOut();
+document.getElementById('adm-err').textContent='Accès non autorisé pour cet email';
+}else{
+document.getElementById('login-screen').style.display='flex';
+document.getElementById('app').style.display='none';
+}
+});
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function goPage(p){
+document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+document.querySelectorAll('.sb-btn[data-p]').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+document.getElementById('p-'+p).classList.add('active');
+const fns={dashboard:renderDashboard,users:renderUsers,expiring:renderExpiring,revenue:renderRevenue,settings:renderSettings,messages:renderMessages,popups:loadPopups,codes:loadCodes};
+if(fns[p])fns[p]();
+}
+
+// ═══════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════
+let allUsers=[];
+async function loadAll(){
+toast('Chargement des données...','');
+try{
+const snap=await db.collection('users_profiles').get();
+allUsers=snap.docs.map(d=>({uid:d.id,...d.data()}));
+await loadMessages();
+toast('✓ '+allUsers.length+' utilisateurs chargés','ok');
+renderDashboard();
+}catch(e){
+toast('Erreur de chargement : '+e.message,'err');
+}
+}
+async function loadUsers(){await loadAll();renderUsers();}
+
+// ═══════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════
+function renderDashboard(){
+const now=new Date();
+const thisMonth=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+const proUsers=allUsers.filter(u=>u.plan==='pro');
+const freeUsers=allUsers.filter(u=>u.plan!=='pro');
+const newThisMonth=allUsers.filter(u=>(u.createdAt||'').startsWith(thisMonth));
+const expiringSoon=allUsers.filter(u=>{
+if(!u.expiresAt)return false;
+const diff=(new Date(u.expiresAt)-now)/(1000*60*60*24);
+return diff>=0&&diff<=7;
+});
+const mrr=proUsers.length*19.99;
+const conv=allUsers.length?Math.round(proUsers.length/allUsers.length*100):0;
+
+document.getElementById('s-total').textContent=allUsers.length;
+document.getElementById('s-pro').textContent=proUsers.length;
+document.getElementById('s-mrr').textContent=mrr.toFixed(0)+'€';
+document.getElementById('s-new').textContent=newThisMonth.length;
+document.getElementById('s-exp').textContent=expiringSoon.length;
+document.getElementById('s-conv').textContent=conv+'%';
+document.getElementById('dash-lastupdate').textContent='Dernière mise à jour : '+new Date().toLocaleTimeString('fr-FR');
+
+// Signups chart (6 months)
+const months=[];
+for(let i=5;i>=0;i--){
+const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+const label=d.toLocaleDateString('fr-FR',{month:'short'});
+const count=allUsers.filter(u=>(u.createdAt||'').startsWith(key)).length;
+months.push({label,count,key});
+}
+const maxCount=Math.max(...months.map(m=>m.count),1);
+const chartEl=document.getElementById('chart-signups');
+chartEl.innerHTML='';
+months.forEach(m=>{
+const pct=Math.max(8,Math.round(m.count/maxCount*100));
+chartEl.innerHTML+=`<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:.72rem;color:var(--gray);width:28px;">${m.label}</span><div style="flex:1;height:18px;background:rgba(255,255,255,.04);border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:var(--blue);border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:.65rem;font-weight:600;">${m.count||''}</div></div></div>`;
+});
+
+// Recent users
+const recent=allUsers.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,5);
+document.getElementById('dash-recent-users').innerHTML=recent.length?`<table style="width:100%"><thead><tr><th style="padding:8px 0;font-size:.7rem;color:var(--gray);text-align:left;">Nom</th><th style="padding:8px 0;font-size:.7rem;color:var(--gray);text-align:left;">Entreprise</th><th style="padding:8px 0;font-size:.7rem;color:var(--gray);text-align:left;">Plan</th><th style="padding:8px 0;font-size:.7rem;color:var(--gray);text-align:left;">Date</th></tr></thead><tbody>${recent.map(u=>`<tr><td style="padding:7px 0;font-size:.83rem;">${u.prenom||''} ${u.nom||''}</td><td style="padding:7px 0;font-size:.83rem;color:var(--gray);">${u.entreprise||'—'}</td><td style="padding:7px 0;">${u.plan==='pro'?'<span class="badge b-pro">⭐ Pro</span>':'<span class="badge b-free">Gratuit</span>'}</td><td style="padding:7px 0;font-size:.75rem;color:var(--gray);">${u.createdAt?new Date(u.createdAt).toLocaleDateString('fr-FR'):'—'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty"><div class="eico">👥</div>Aucun utilisateur</div>';
+}
+
+// ═══════════════════════════════════════
+// USERS TABLE
+// ═══════════════════════════════════════
+let filteredUsers=[];
+function renderUsers(){
+filteredUsers=[...allUsers];
+document.getElementById('users-count').textContent=allUsers.length+' utilisateur(s) au total';
+// Populate month filter
+const months=new Set(allUsers.map(u=>(u.createdAt||'').slice(0,7)).filter(Boolean));
+const msel=document.getElementById('user-filter-month');
+const cur=msel.value;
+msel.innerHTML='<option value="">Tous les mois</option>';
+[...months].sort().reverse().forEach(m=>{
+const d=new Date(m+'-01');
+msel.add(new Option(d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}),m));
+});
+if(cur)msel.value=cur;
+filterUsers();
+}
+function filterUsers(){
+const s=document.getElementById('user-search').value.toLowerCase();
+const plan=document.getElementById('user-filter-plan').value;
+const month=document.getElementById('user-filter-month').value;
+filteredUsers=allUsers.filter(u=>{
+const txt=((u.prenom||'')+(u.nom||'')+(u.email||'')+(u.entreprise||'')).toLowerCase();
+if(s&&!txt.includes(s))return false;
+if(plan&&u.plan!==plan)return false;
+if(month&&!(u.createdAt||'').startsWith(month))return false;
+return true;
+});
+renderUsersTable();
+}
+function renderUsersTable(){
+const now=new Date();
+const tb=document.getElementById('users-tb');
+if(!filteredUsers.length){tb.innerHTML='<tr><td colspan="9"><div class="empty"><div class="eico">🔍</div>Aucun résultat</div></td></tr>';return;}
+tb.innerHTML=filteredUsers.map(u=>{
+const isPro=u.plan==='pro';
+const expDate=u.expiresAt?new Date(u.expiresAt):null;
+const daysLeft=expDate?Math.ceil((expDate-now)/(1000*60*60*24)):null;
+let planBadge=isPro?`<span class="badge b-pro">⭐ Pro</span>`:`<span class="badge b-free">Gratuit</span>`;
+let expBadge='—';
+if(expDate){
+if(daysLeft<0)expBadge=`<span class="badge b-exp">Expiré</span>`;
+else if(daysLeft<=7)expBadge=`<span class="badge b-exp">${daysLeft}j</span>`;
+else expBadge=`<span style="font-size:.75rem;color:var(--gray);">${expDate.toLocaleDateString('fr-FR')}</span>`;
+}
+const isNew=(u.createdAt||'').startsWith(new Date().toISOString().slice(0,7));
+return `<tr>
+<td><div style="font-weight:500;">${u.prenom||''} ${u.nom||''} ${isNew?'<span class="badge b-new" style="font-size:.6rem;">NEW</span>':''}</div><div style="font-size:.73rem;color:var(--gray);">${u.uid?.slice(0,12)||''}...</div></td>
+<td>${u.entreprise||'—'}</td>
+<td style="font-size:.82rem;">${u.email||'—'}</td>
+<td style="font-size:.82rem;color:var(--gray);">${u.tel||'—'}</td>
+<td>${planBadge}</td>
+<td style="font-size:.78rem;color:var(--gray);">${u.createdAt?new Date(u.createdAt).toLocaleDateString('fr-FR'):'—'}</td>
+<td>${expBadge}</td>
+<td><div style="font-size:.75rem;color:var(--gray);">${u.activity?`👥${u.activity.clients||0} 🚗${u.activity.prestations||0} 🧾${u.activity.factures||0}`:'—'}</div></td>
+<td><div class="row-actions">
+<button class="btn btn-ghost" onclick="openUserModal('${u.uid}')" title="Voir la fiche">👁</button>
+<button class="btn btn-gold" onclick='openEmailModal("${u.email}","${(u.prenom||'')+' '+(u.nom||'')}".trim())' title="Envoyer email">📧</button>
+${isPro?`<button class="btn btn-red" onclick="quickDeactivate('${u.uid}')" title="Désactiver Pro">⛔</button>`:`<button class="btn btn-green" onclick="quickActivate('${u.uid}')" title="Activer Pro 1 mois">⭐</button><button class="btn btn-gold" onclick="giftProAccess('${u.uid}')" title="Offrir Pro illimité">🎁</button>`}
+</div></td>
+</tr>`;
+}).join('');
+}
+
+// Quick actions
+async function quickActivate(uid){
+const expiry=new Date();expiry.setMonth(expiry.getMonth()+1);
+await db.collection('users_profiles').doc(uid).update({plan:'pro',expiresAt:expiry.toISOString(),updatedAt:new Date().toISOString()});
+const u=allUsers.find(x=>x.uid===uid);if(u){u.plan='pro';u.expiresAt=expiry.toISOString();}
+filterUsers();toast('✓ Plan Pro activé (1 mois) !','ok');
+}
+async function giftProAccess(uid){
+// Gift = Pro illimité sans expiration
+await db.collection('users_profiles').doc(uid).update({plan:'pro',expiresAt:null,gift:true,updatedAt:new Date().toISOString()});
+const u=allUsers.find(x=>x.uid===uid);if(u){u.plan='pro';u.expiresAt=null;u.gift=true;}
+filterUsers();toast('🎁 Accès Pro offert (illimité) !','ok');
+}
+async function quickDeactivate(uid){
+if(!confirm('Désactiver le plan Pro ?'))return;
+await db.collection('users_profiles').doc(uid).update({plan:'free',expiresAt:null,gift:false,updatedAt:new Date().toISOString()});
+const u=allUsers.find(x=>x.uid===uid);if(u){u.plan='free';u.expiresAt=null;u.gift=false;}
+filterUsers();toast('Plan désactivé','ok');
+}
+
+// ═══════════════════════════════════════
+// USER MODAL
+// ═══════════════════════════════════════
+let currentModalUid=null;
+function openUserModal(uid){
+currentModalUid=uid;
+const u=allUsers.find(x=>x.uid===uid);if(!u)return;
+document.getElementById('modal-user-name').textContent=(u.prenom||'')+' '+(u.nom||'');
+document.getElementById('mu-prenom').value=u.prenom||'';
+document.getElementById('mu-nom').value=u.nom||'';
+document.getElementById('mu-email').value=u.email||'';
+document.getElementById('mu-tel').value=u.tel||'';
+document.getElementById('mu-entreprise').value=u.entreprise||'';
+document.getElementById('mu-date').value=u.createdAt?new Date(u.createdAt).toLocaleDateString('fr-FR'):'—';
+document.getElementById('mu-plan').value=u.plan||'free';
+document.getElementById('mu-expiry').value=u.expiresAt?u.expiresAt.split('T')[0]:'';
+document.getElementById('mu-notes').value=u.notes||'';
+// Alerts
+const now=new Date();
+const alerts=document.getElementById('modal-alerts');
+alerts.innerHTML='';
+if(u.expiresAt){
+const diff=Math.ceil((new Date(u.expiresAt)-now)/(1000*60*60*24));
+if(diff<0)alerts.innerHTML+=`<div class="alert alert-red">⚠️ Essai Pro expiré depuis ${Math.abs(diff)} jour(s)</div>`;
+else if(diff<=7)alerts.innerHTML+=`<div class="alert alert-gold">⏰ Essai Pro expire dans ${diff} jour(s)</div>`;
+else alerts.innerHTML+=`<div class="alert alert-green">✓ Essai Pro valide encore ${diff} jour(s)</div>`;
+}
+// Activity
+loadUserActivity(uid);
+document.getElementById('user-modal').classList.add('open');
+}
+async function loadUserActivity(uid){
+const el=document.getElementById('mu-activity');
+try{
+const cols=['clients','prestations','factures','devis','operations'];
+const counts={};
+for(const col of cols){
+const doc=await db.collection('users').doc(uid).collection('data').doc(col).get();
+counts[col]=doc.exists?(doc.data().items||[]).length:0;
+}
+el.innerHTML=[
+{ico:'👥',label:'Clients',col:'clients'},
+{ico:'🚗',label:'Prestations',col:'prestations'},
+{ico:'🧾',label:'Factures',col:'factures'},
+{ico:'📋',label:'Devis',col:'devis'},
+{ico:'💰',label:'Opérations',col:'operations'},
+].map(x=>`<div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px 14px;text-align:center;min-width:90px;"><div style="font-size:1.2rem;">${x.ico}</div><div style="font-family:'Syne';font-weight:700;font-size:1.1rem;margin:3px 0;">${counts[x.col]||0}</div><div style="font-size:.7rem;color:var(--gray);">${x.label}</div></div>`).join('');
+// Update activity in user object
+const u=allUsers.find(x=>x.uid===uid);
+if(u)u.activity={clients:counts.clients,prestations:counts.prestations,factures:counts.factures};
+}catch(e){el.innerHTML='<span style="font-size:.8rem;color:var(--gray)">Impossible de charger l\'activité</span>';}
+}
+function closeModal(){document.getElementById('user-modal').classList.remove('open');currentModalUid=null;}
+async function saveUser(){
+if(!currentModalUid)return;
+const plan=document.getElementById('mu-plan').value;
+const expiry=document.getElementById('mu-expiry').value;
+const notes=document.getElementById('mu-notes').value;
+await db.collection('users_profiles').doc(currentModalUid).update({plan,expiresAt:expiry?new Date(expiry).toISOString():null,notes,updatedAt:new Date().toISOString()});
+const u=allUsers.find(x=>x.uid===currentModalUid);
+if(u){u.plan=plan;u.expiresAt=expiry?new Date(expiry).toISOString():null;u.notes=notes;}
+closeModal();filterUsers();toast('✓ Utilisateur mis à jour','ok');
+}
+async function deleteUser(){
+if(!currentModalUid)return;
+const u=allUsers.find(x=>x.uid===currentModalUid);
+if(!confirm(`Supprimer le compte de ${u?.prenom||''} ${u?.nom||''} ? Cette action est irréversible.`))return;
+await db.collection('users_profiles').doc(currentModalUid).delete();
+allUsers=allUsers.filter(x=>x.uid!==currentModalUid);
+closeModal();filterUsers();renderDashboard();toast('Utilisateur supprimé','ok');
+}
+
+// ═══════════════════════════════════════
+// EMAIL MODAL
+// ═══════════════════════════════════════
+function openEmailModal(email,name){
+document.getElementById('em-to').value=email;
+document.getElementById('em-subject').value='';
+document.getElementById('em-body').value=`Bonjour ${name},\n\n`;
+document.getElementById('email-modal').classList.add('open');
+}
+function closeEmailModal(){document.getElementById('email-modal').classList.remove('open');}
+function sendEmail(){
+const to=document.getElementById('em-to').value;
+const subject=document.getElementById('em-subject').value;
+const body=document.getElementById('em-body').value;
+const link=`mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+window.open(link,'_blank');
+closeEmailModal();
+toast('✓ Email préparé','ok');
+}
+
+// ═══════════════════════════════════════
+// EXPIRING PAGE
+// ═══════════════════════════════════════
+function renderExpiring(){
+const now=new Date();
+const groups={expired:[],week:[],month:[]};
+allUsers.forEach(u=>{
+if(!u.expiresAt)return;
+const diff=Math.ceil((new Date(u.expiresAt)-now)/(1000*60*60*24));
+if(diff<0)groups.expired.push({...u,diff});
+else if(diff<=7)groups.week.push({...u,diff});
+else if(diff<=30)groups.month.push({...u,diff});
+});
+const el=document.getElementById('expiring-content');
+const renderGroup=(title,color,users,emoji)=>{
+if(!users.length)return'';
+return`<div class="card" style="margin-bottom:16px;border-color:${color}20;">
+<div class="card-title" style="color:${color};">${emoji} ${title} (${users.length})</div>
+<table style="width:100%"><thead><tr><th style="text-align:left;padding:6px 0;font-size:.7rem;color:var(--gray);">Nom</th><th style="text-align:left;padding:6px 0;font-size:.7rem;color:var(--gray);">Email</th><th style="text-align:left;padding:6px 0;font-size:.7rem;color:var(--gray);">Expiration</th><th></th></tr></thead><tbody>
+${users.map(u=>`<tr><td style="padding:8px 0;font-size:.83rem;">${u.prenom||''} ${u.nom||''}</td><td style="font-size:.8rem;color:var(--gray);">${u.email||'—'}</td><td style="font-size:.78rem;color:${color};">${u.diff<0?'Expiré il y a '+Math.abs(u.diff)+'j':u.diff+'j restants'}</td><td><div class="row-actions"><button class="btn btn-green" onclick="quickActivate('${u.uid}')">⭐ Renouveler</button><button class="btn btn-ghost" onclick='openEmailModal("${u.email}","${(u.prenom||'')+' '+(u.nom||'')}".trim())'>📧</button></div></td></tr>`).join('')}
+</tbody></table></div>`;
+};
+el.innerHTML=renderGroup('Essais expirés','#ff4d6a',groups.expired,'🔴')+renderGroup('Expirent dans 7 jours','#f5a623',groups.week,'🟡')+renderGroup('Expirent dans 30 jours','#00d4ff',groups.month,'🔵')||((!groups.expired.length&&!groups.week.length&&!groups.month.length)?'<div class="empty"><div class="eico">✅</div>Aucune expiration imminente !</div>':'');
+}
+
+// ═══════════════════════════════════════
+// REVENUE PAGE
+// ═══════════════════════════════════════
+function renderRevenue(){
+const proUsers=allUsers.filter(u=>u.plan==='pro');
+const mrr=proUsers.length*19.99;
+const arr=mrr*12;
+const net=mrr*0.972;
+document.getElementById('rev-mrr').textContent=mrr.toFixed(2)+'€';
+document.getElementById('rev-arr').textContent=arr.toFixed(0)+'€';
+document.getElementById('rev-stripe').textContent=net.toFixed(2)+'€';
+document.getElementById('rev-list').innerHTML=proUsers.length?`<table style="width:100%"><thead><tr><th style="text-align:left;font-size:.7rem;color:var(--gray);padding:8px 0;">Nom</th><th style="text-align:left;font-size:.7rem;color:var(--gray);padding:8px 0;">Email</th><th style="text-align:left;font-size:.7rem;color:var(--gray);padding:8px 0;">Entreprise</th><th style="text-align:left;font-size:.7rem;color:var(--gray);padding:8px 0;">Expiration</th><th style="text-align:right;font-size:.7rem;color:var(--gray);padding:8px 0;">Montant</th></tr></thead><tbody>${proUsers.map(u=>`<tr><td style="padding:8px 0;font-size:.83rem;">${u.prenom||''} ${u.nom||''}</td><td style="font-size:.8rem;color:var(--gray);">${u.email||'—'}</td><td style="font-size:.8rem;color:var(--gray);">${u.entreprise||'—'}</td><td style="font-size:.78rem;color:var(--gray);">${u.expiresAt?new Date(u.expiresAt).toLocaleDateString('fr-FR'):'Illimité'}</td><td style="text-align:right;font-family:'JetBrains Mono';font-size:.83rem;color:var(--green);">19,99€</td></tr>`).join('')}</tbody><tfoot><tr><td colspan="4" style="padding-top:12px;font-weight:600;">Total MRR</td><td style="text-align:right;font-family:'JetBrains Mono';font-weight:700;color:var(--green);font-size:1rem;">${mrr.toFixed(2)}€</td></tr></tfoot></table>`:'<div class="empty"><div class="eico">💰</div>Aucun abonné Pro pour l\'instant</div>';
+}
+
+// ═══════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════
+function renderSettings(){
+const emails=getAdminEmails();
+document.getElementById('admin-emails-list').innerHTML=emails.map((e,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:.85rem;"><span>${e}</span>${i>0?`<button class="btn btn-red" onclick="removeAdminEmail(${i})" style="padding:4px 8px;">✕</button>`:''}</div>`).join('');
+}
+function addAdminEmail(){
+const email=document.getElementById('new-admin-email').value.trim();
+if(!email||!email.includes('@')){toast('Email invalide','err');return;}
+const emails=getAdminEmails();
+if(emails.includes(email)){toast('Email déjà dans la liste','err');return;}
+emails.push(email);
+localStorage.setItem('washdesk_admin_emails',JSON.stringify(emails));
+document.getElementById('new-admin-email').value='';
+renderSettings();toast('✓ Admin ajouté','ok');
+}
+function removeAdminEmail(i){
+const emails=getAdminEmails();
+emails.splice(i,1);
+localStorage.setItem('washdesk_admin_emails',JSON.stringify(emails));
+renderSettings();toast('Admin supprimé','ok');
+}
+function saveGlobalMsg(){toast('✓ Message enregistré','ok');}
+
+// ═══════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════
+let allMessages=[];
+async function loadMessages(){
+try{
+const snap=await db.collection('contact_messages').orderBy('createdAt','desc').get();
+allMessages=snap.docs.map(d=>({id:d.id,...d.data()}));
+// Update badge
+const unread=allMessages.filter(m=>!m.lu).length;
+const badge=document.getElementById('msg-badge');
+if(badge){badge.style.display=unread>0?'inline':'none';badge.textContent=unread;}
+renderMessages();
+}catch(e){console.warn('Messages:',e);}
+}
+function renderMessages(){
+const el=document.getElementById('messages-list');
+if(!allMessages.length){el.innerHTML='<div class="empty"><div class="eico">💬</div>Aucun message reçu pour l\'instant</div>';return;}
+el.innerHTML=allMessages.map(m=>`<div class="card" style="margin-bottom:12px;${m.lu?'opacity:.65':'border-color:rgba(26,109,255,.3)'}">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+<div style="flex:1;">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+<strong>${m.nom||'—'}</strong>
+<span style="font-size:.75rem;color:#8892a4;">${m.email||''}</span>
+${!m.lu?'<span class="badge b-new">Nouveau</span>':''}
+<span style="font-size:.72rem;color:#555;margin-left:auto;">${m.createdAt?new Date(m.createdAt).toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</span>
+</div>
+<div style="font-size:.78rem;color:#00d4ff;margin-bottom:6px;">📌 ${m.sujet||'—'}</div>
+<div style="font-size:.85rem;color:#a0aab8;line-height:1.6;">${m.message||'—'}</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+<button class="btn btn-blue" onclick='openEmailModal("${m.email}","${m.nom}")'>📧 Répondre</button>
+${!m.lu?`<button class="btn btn-ghost" onclick="markRead('${m.id}')">✓ Lu</button>`:''}
+<button class="btn btn-red" onclick="deleteMsg('${m.id}')">🗑</button>
+</div>
+</div>
+</div>`).join('');
+}
+async function markRead(id){
+await db.collection('contact_messages').doc(id).update({lu:true});
+const m=allMessages.find(x=>x.id===id);if(m)m.lu=true;
+loadMessages();
+}
+async function deleteMsg(id){
+if(!confirm('Supprimer ce message ?'))return;
+await db.collection('contact_messages').doc(id).delete();
+allMessages=allMessages.filter(x=>x.id!==id);
+renderMessages();toast('Message supprimé','ok');
+}
+
+// ═══════════════════════════════════════
+// POPUPS MANAGEMENT
+// ═══════════════════════════════════════
+let allPopups=[];
+let editPopupId=null;
+async function loadPopups(){
+try{
+const snap=await db.collection('admin_popups').orderBy('createdAt','desc').get();
+allPopups=snap.docs.map(d=>({id:d.id,...d.data()}));
+renderPopups();
+}catch(e){toast('Erreur chargement popups','err');}
+}
+function renderPopups(){
+const el=document.getElementById('popups-list');
+if(!allPopups.length){el.innerHTML='<div class="empty"><div class="eico">📢</div>Aucun pop-up créé</div>';return;}
+el.innerHTML=allPopups.map(p=>`<div class="card" style="margin-bottom:12px;${p.active?'border-color:rgba(26,109,255,.3)':'opacity:.6'}">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+<div style="flex:1;">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+<strong>${p.title||'Sans titre'}</strong>
+<span class="badge ${p.active?'b-active':'b-free'}">${p.active?'Actif':'Inactif'}</span>
+<span class="badge b-new">${p.type==='welcome'?'Bienvenue':'Info'}</span>
+</div>
+<div style="font-size:.83rem;color:#a0aab8;margin-bottom:8px;">${p.message||''}</div>
+<div style="font-size:.73rem;color:#555;">
+Plans : ${(p.plans||[]).join(', ')||'Tous'} · 
+Affichages : ${p.maxTimes||1}x · 
+Page : ${p.page||'Toutes'}
+${p.startDate?` · Du ${new Date(p.startDate).toLocaleDateString('fr-FR')}`:''}
+${p.endDate?` au ${new Date(p.endDate).toLocaleDateString('fr-FR')}`:''}
+</div>
+</div>
+<div style="display:flex;gap:6px;flex-shrink:0;">
+<button class="btn btn-ghost" onclick="editPopup('${p.id}')">✏️ Modifier</button>
+<button class="btn ${p.active?'btn-red':'btn-green'}" onclick="togglePopup('${p.id}',${!p.active})">${p.active?'Désactiver':'Activer'}</button>
+<button class="btn btn-red" onclick="deletePopup('${p.id}')">🗑</button>
+</div>
+</div>
+</div>`).join('');
+}
+function openPopupModal(id=null){
+editPopupId=id;
+document.getElementById('popup-modal-title').textContent=id?'Modifier le pop-up':'Créer un pop-up';
+if(id){
+const p=allPopups.find(x=>x.id===id);
+if(!p)return;
+document.getElementById('pm-type').value=p.type||'info';
+document.getElementById('pm-title').value=p.title||'';
+document.getElementById('pm-message').value=p.message||'';
+document.getElementById('pm-max-times').value=p.maxTimes||1;
+document.getElementById('pm-page').value=p.page||'';
+document.getElementById('pm-start').value=p.startDate||'';
+document.getElementById('pm-end').value=p.endDate||'';
+document.getElementById('pm-active').checked=p.active!==false;
+document.querySelectorAll('.pm-plan').forEach(cb=>{cb.checked=(p.plans||[]).includes(cb.value);});
+}else{
+document.getElementById('pm-type').value='info';
+document.getElementById('pm-title').value='';
+document.getElementById('pm-message').value='';
+document.getElementById('pm-max-times').value=1;
+document.getElementById('pm-page').value='';
+document.getElementById('pm-start').value='';
+document.getElementById('pm-end').value='';
+document.getElementById('pm-active').checked=true;
+document.querySelectorAll('.pm-plan').forEach(cb=>{cb.checked=true;});
+}
+document.getElementById('popup-modal').classList.add('open');
+}
+function closePopupModal(){document.getElementById('popup-modal').classList.remove('open');editPopupId=null;}
+async function savePopup(){
+const plans=[...document.querySelectorAll('.pm-plan:checked')].map(cb=>cb.value);
+const data={
+type:document.getElementById('pm-type').value,
+title:document.getElementById('pm-title').value.trim(),
+message:document.getElementById('pm-message').value.trim(),
+plans,
+maxTimes:parseInt(document.getElementById('pm-max-times').value)||1,
+page:document.getElementById('pm-page').value,
+startDate:document.getElementById('pm-start').value||null,
+endDate:document.getElementById('pm-end').value||null,
+active:document.getElementById('pm-active').checked,
+updatedAt:new Date().toISOString()
+};
+if(!data.title||!data.message){toast('Titre et message obligatoires','err');return;}
+try{
+if(editPopupId){await db.collection('admin_popups').doc(editPopupId).update(data);}
+else{data.createdAt=new Date().toISOString();await db.collection('admin_popups').add(data);}
+closePopupModal();await loadPopups();toast('✓ Pop-up enregistré','ok');
+}catch(e){toast('Erreur : '+e.message,'err');}
+}
+async function togglePopup(id,active){
+await db.collection('admin_popups').doc(id).update({active});
+const p=allPopups.find(x=>x.id===id);if(p)p.active=active;
+renderPopups();toast(active?'✓ Pop-up activé':'Pop-up désactivé','ok');
+}
+async function deletePopup(id){
+if(!confirm('Supprimer ce pop-up ?'))return;
+await db.collection('admin_popups').doc(id).delete();
+allPopups=allPopups.filter(x=>x.id!==id);
+renderPopups();toast('Pop-up supprimé','ok');
+}
+function editPopup(id){openPopupModal(id);}
+
+// ═══════════════════════════════════════
+// CODES D'ACCÈS
+// ═══════════════════════════════════════
+let allCodes=[];
+
+function generateCode(){
+const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+let code='WASH-';
+for(let i=0;i<4;i++)code+=chars[Math.floor(Math.random()*chars.length)];
+code+='-';
+for(let i=0;i<4;i++)code+=chars[Math.floor(Math.random()*chars.length)];
+document.getElementById('cm-code').value=code;
+}
+
+function openCodeModal(){
+document.getElementById('cm-code').value='';
+document.getElementById('cm-plan').value='pro';
+document.getElementById('cm-duree').value='30';
+document.getElementById('cm-uses').value='1';
+document.getElementById('cm-note').value='';
+generateCode();
+document.getElementById('code-modal').classList.add('open');
+}
+
+function closeCodeModal(){
+document.getElementById('code-modal').classList.remove('open');
+}
+
+async function saveCode(){
+const code=document.getElementById('cm-code').value.trim().toUpperCase();
+const plan=document.getElementById('cm-plan').value;
+const duree=parseInt(document.getElementById('cm-duree').value);
+const maxUses=parseInt(document.getElementById('cm-uses').value);
+const note=document.getElementById('cm-note').value.trim();
+if(!code){toast('Code obligatoire','err');return;}
+try{
+const expiresAt=duree>0?new Date(Date.now()+duree*24*3600000).toISOString():null;
+await db.collection('access_codes').doc(code).set({
+code,plan,duree,maxUses,note,
+usedCount:0,usedBy:[],
+active:true,
+expiresAt,
+createdAt:new Date().toISOString()
+});
+closeCodeModal();
+await loadCodes();
+toast('✓ Code "'+code+'" créé !','ok');
+}catch(e){toast('Erreur : '+e.message,'err');}
+}
+
+async function loadCodes(){
+try{
+const snap=await db.collection('access_codes').orderBy('createdAt','desc').get();
+allCodes=snap.docs.map(d=>({id:d.id,...d.data()}));
+renderCodes();
+}catch(e){toast('Erreur chargement codes','err');}
+}
+
+function renderCodes(){
+const el=document.getElementById('codes-list');
+if(!allCodes.length){
+el.innerHTML='<div class="empty"><div class="eico">🎟️</div>Aucun code créé</div>';
+return;
+}
+const planLabels={basic:'Basic',pro:'Pro',proplus:'Pro+'};
+const planColors={basic:'#00d4ff',pro:'#f5a623',proplus:'#a855f7'};
+el.innerHTML=allCodes.map(c=>`
+<div class="card" style="margin-bottom:10px;${!c.active?'opacity:.5':''}">
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+<div style="display:flex;align-items:center;gap:12px;">
+<div style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;letter-spacing:2px;color:${planColors[c.plan]||'#fff'};">${c.code}</div>
+<span class="badge" style="background:${planColors[c.plan]}22;color:${planColors[c.plan]};border:1px solid ${planColors[c.plan]}44;">${planLabels[c.plan]||c.plan}</span>
+<span class="badge b-free">${c.duree>0?c.duree+' jours':'Illimité'}</span>
+</div>
+<div style="display:flex;align-items:center;gap:8px;">
+<span style="font-size:.78rem;color:#8892a4;">${c.usedCount||0}/${c.maxUses||'∞'} utilisations</span>
+<button class="btn btn-ghost btn-sm" onclick="copyCode('${c.code}')">📋 Copier</button>
+<button class="btn ${c.active?'btn-red':'btn-green'} btn-sm" onclick="toggleCode('${c.id}',${!c.active})">${c.active?'Désactiver':'Activer'}</button>
+<button class="btn btn-red btn-sm" onclick="deleteCode('${c.id}')">🗑</button>
+</div>
+</div>
+${c.note?`<div style="font-size:.78rem;color:#8892a4;margin-top:8px;">📝 ${c.note}</div>`:''}
+${c.usedBy&&c.usedBy.length?`<div style="font-size:.75rem;color:#555;margin-top:6px;">Utilisé par : ${c.usedBy.join(', ')}</div>`:''}
+</div>`).join('');
+}
+
+function copyCode(code){
+navigator.clipboard.writeText(code).then(()=>toast('✓ Code copié !','ok'));
+}
+
+async function toggleCode(id,active){
+await db.collection('access_codes').doc(id).update({active});
+const c=allCodes.find(x=>x.id===id);if(c)c.active=active;
+renderCodes();
+toast(active?'✓ Code activé':'Code désactivé','ok');
+}
+
+async function deleteCode(id){
+if(!confirm('Supprimer ce code ?'))return;
+await db.collection('access_codes').doc(id).delete();
+allCodes=allCodes.filter(x=>x.id!==id);
+renderCodes();
+toast('Code supprimé','ok');
+}
+
+function exportCSV(){
+const headers=['Prénom','Nom','Email','Téléphone','Entreprise','Plan','Date inscription','Expiration','Notes'];
+const rows=filteredUsers.map(u=>[u.prenom||'',u.nom||'',u.email||'',u.tel||'',u.entreprise||'',u.plan||'free',u.createdAt?new Date(u.createdAt).toLocaleDateString('fr-FR'):'',u.expiresAt?new Date(u.expiresAt).toLocaleDateString('fr-FR'):'',u.notes||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';'));
+const csv=[headers.join(';'),...rows].join('\n');
+const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='washdesk_users_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+toast('✓ CSV exporté','ok');
+}
+
+// ═══════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════
+function toast(msg,type){
+const t=document.getElementById('toast');
+t.textContent=msg;
+t.className='toast show'+(type==='ok'?' ok':type==='err'?' err':'');
+setTimeout(()=>t.className='toast',3000);
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeEmailModal();}});
+</script>
+</body>
+</html>
