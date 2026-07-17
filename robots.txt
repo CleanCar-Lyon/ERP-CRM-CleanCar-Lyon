@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard.html
+Disallow: /reservation.html
+
+Sitemap: https://washdesk.fr/sitemap.xml
