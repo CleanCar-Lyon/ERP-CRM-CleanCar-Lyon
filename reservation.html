@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Réservation en ligne — WashDesk</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+--brand-dark:#13203D;
+--brand-dark2:#1a2a4a;
+--brand-dark3:#223357;
+--brand-white:#FFFFFF;
+--brand-green:#00c97a;
+--brand-red:#ff4d6a;
+--brand-orange:#f5a623;
+--radius:12px;
+}
+body{
+--bg:var(--brand-dark);
+--bg2:var(--brand-dark2);
+--bg3:var(--brand-dark3);
+--border:rgba(255,255,255,.1);
+--border2:rgba(255,255,255,.18);
+--text:#FFFFFF;
+--text2:rgba(255,255,255,.7);
+--text3:rgba(255,255,255,.45);
+--primary:var(--brand-white);
+--primaryLight:rgba(255,255,255,.12);
+--green:var(--brand-green);--greenBg:rgba(0,201,122,.12);
+--red:var(--brand-red);--redBg:rgba(255,77,106,.12);
+--gold:var(--brand-orange);--goldBg:rgba(245,166,35,.12);
+--btn-bg:var(--brand-white);
+--btn-text:var(--brand-dark);
+background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;
+}
+body.light-mode{
+--bg:var(--brand-white);
+--bg2:#f8f9fc;
+--bg3:#f0f3f8;
+--border:rgba(19,32,61,.12);
+--border2:rgba(19,32,61,.2);
+--text:var(--brand-dark);
+--text2:rgba(19,32,61,.65);
+--text3:rgba(19,32,61,.4);
+--primary:var(--brand-dark);
+--primaryLight:rgba(19,32,61,.06);
+--green:#007a4a;--greenBg:rgba(0,122,74,.08);
+--red:#c0002a;--redBg:rgba(192,0,42,.08);
+--gold:#b37000;--goldBg:rgba(179,112,0,.08);
+--btn-bg:var(--brand-dark);
+--btn-text:var(--brand-white);
+}
+html{font-size:14.5px;}
+::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-track{background:var(--bg);} ::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
+
+/* HEADER */
+.res-header{
+padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;
+background:var(--bg2);border-bottom:1px solid var(--border);
+position:sticky;top:0;z-index:10;
+}
+.res-logo{display:flex;align-items:center;gap:10px;}
+.res-logo .lb{
+width:32px;height:32px;background:var(--btn-bg);border-radius:8px;
+display:flex;align-items:center;justify-content:center;
+font-family:'Syne',sans-serif;font-weight:800;font-size:.8rem;color:var(--btn-text);
+}
+.res-logo .ln{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;color:var(--text);}
+.res-logo .ln span{color:var(--text3);}
+.res-powered{font-size:.72rem;color:var(--text3);}
+.res-powered a{color:var(--text2);text-decoration:none;}
+
+/* MAIN */
+.res-main{max-width:660px;margin:0 auto;padding:28px 20px 80px;}
+
+/* BIZ CARD */
+.biz-card{
+background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+padding:20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;
+}
+.biz-logo{
+width:52px;height:52px;background:var(--primaryLight);border-radius:10px;
+display:flex;align-items:center;justify-content:center;
+font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;color:var(--primary);
+flex-shrink:0;overflow:hidden;border:1px solid var(--border);
+}
+.biz-logo img{width:100%;height:100%;object-fit:cover;}
+.biz-name{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;color:var(--text);}
+.biz-msg{font-size:.84rem;color:var(--text2);margin-top:4px;line-height:1.5;}
+.biz-info{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;}
+.biz-info span{font-size:.76rem;color:var(--text3);}
+
+/* SECTION */
+.sec-title{font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;color:var(--text);margin-bottom:12px;margin-top:20px;letter-spacing:.2px;}
+
+/* FORMULES */
+.formule-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:4px;}
+.formule-card{
+background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;
+padding:14px 16px;cursor:pointer;transition:all .2s;
+}
+.formule-card:hover{border-color:var(--border2);background:var(--bg3);}
+.formule-card.selected{border-color:var(--primary);background:var(--primaryLight);}
+.formule-header{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.formule-name{font-weight:600;font-size:.9rem;color:var(--text);}
+.formule-meta{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.formule-price{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;color:var(--primary);}
+.formule-duree{font-size:.72rem;color:var(--text3);background:var(--bg3);padding:2px 7px;border-radius:5px;border:1px solid var(--border);}
+.formule-check{
+width:18px;height:18px;border:1.5px solid var(--border2);border-radius:50%;
+display:flex;align-items:center;justify-content:center;font-size:.72rem;
+transition:all .2s;flex-shrink:0;color:var(--text);
+}
+.formule-card.selected .formule-check{background:var(--primary);border-color:var(--primary);color:var(--btn-text);}
+.formule-detail{
+display:none;margin-top:10px;padding-top:10px;
+border-top:1px solid var(--border);
+font-size:.8rem;color:var(--text2);line-height:1.6;
+}
+.formule-card.expanded .formule-detail{display:block;}
+.formule-info-btn{
+background:var(--primaryLight);border:1px solid var(--border);border-radius:50%;
+width:18px;height:18px;display:flex;align-items:center;justify-content:center;
+font-size:.65rem;cursor:pointer;color:var(--text2);flex-shrink:0;
+transition:all .15s;
+}
+.formule-info-btn:hover{background:var(--border2);}
+
+/* CALENDRIER */
+.cal-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:8px;}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.cal-title{font-family:'Syne',sans-serif;font-weight:700;font-size:.92rem;color:var(--text);}
+.cal-nav-btn{
+background:var(--bg3);border:1px solid var(--border);border-radius:7px;
+width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+cursor:pointer;color:var(--text2);font-size:1rem;transition:all .15s;
+}
+.cal-nav-btn:hover{background:var(--primaryLight);color:var(--primary);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-dow{text-align:center;font-size:.64rem;color:var(--text3);padding:4px 2px;font-weight:600;letter-spacing:.5px;}
+.cal-day{
+border-radius:8px;padding:7px 3px;font-size:.8rem;cursor:pointer;text-align:center;
+transition:all .15s;border:1px solid transparent;
+min-height:44px;display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.cal-day:hover:not(.unavail):not(.past):not(.other-month){
+background:var(--primaryLight);border-color:var(--border2);color:var(--text);
+}
+.cal-day.selected{background:var(--primary);border-color:var(--primary);color:var(--btn-text);font-weight:700;}
+.cal-day.today:not(.selected){border-color:var(--border2);}
+.cal-day.other-month{color:var(--text3);opacity:.25;pointer-events:none;}
+.cal-day.unavail{background:var(--redBg);border-color:rgba(255,77,106,.2);cursor:not-allowed;color:var(--text3);}
+.cal-day.past{opacity:.25;cursor:not-allowed;pointer-events:none;}
+.cal-day.busy-partial{background:var(--goldBg);border-color:rgba(245,166,35,.2);}
+.cal-day-num{font-size:.8rem;line-height:1;}
+.cal-dot{width:5px;height:5px;border-radius:50%;margin-top:1px;}
+.cal-unavail-tag{font-size:.55rem;color:var(--red);font-weight:700;line-height:1;}
+.cal-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.72rem;color:var(--text3);padding-top:10px;border-top:1px solid var(--border);}
+.cal-legend-item{display:flex;align-items:center;gap:5px;}
+.cal-legend-dot{width:7px;height:7px;border-radius:50%;}
+
+/* HORAIRES */
+.hours-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;}
+.hour-btn{
+background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+padding:10px 4px;text-align:center;cursor:pointer;font-size:.82rem;
+transition:all .15s;color:var(--text);
+}
+.hour-btn:hover:not(.taken){border-color:var(--border2);background:var(--bg3);}
+.hour-btn.selected{background:var(--primary);border-color:var(--primary);color:var(--btn-text);font-weight:700;}
+.hour-btn.taken{opacity:.3;cursor:not-allowed;text-decoration:line-through;font-size:.72rem;}
+
+/* FORM */
+.res-form{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.fi{margin-bottom:14px;}
+.fi label{display:block;font-size:.74rem;color:var(--text3);margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;}
+.fi input,.fi select,.fi textarea{
+width:100%;padding:10px 13px;
+background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+color:var(--text);font-family:inherit;font-size:.88rem;
+transition:border-color .2s;
+}
+.fi input:focus,.fi select:focus,.fi textarea:focus{outline:none;border-color:var(--border2);}
+.fi input::placeholder,.fi textarea::placeholder{color:var(--text3);}
+.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* PAIEMENT */
+.pay-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.pay-opt{
+background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;
+padding:14px;cursor:pointer;transition:all .2s;text-align:center;
+}
+.pay-opt:hover{border-color:var(--border2);}
+.pay-opt.selected{border-color:var(--primary);background:var(--primaryLight);}
+.pay-opt-label{font-weight:600;font-size:.85rem;color:var(--text);}
+.pay-opt-desc{font-size:.73rem;color:var(--text3);margin-top:3px;}
+
+/* BOUTON */
+.btn-submit{
+width:100%;padding:13px;
+background:var(--btn-bg);color:var(--btn-text);
+border:none;border-radius:10px;
+font-family:'Syne',sans-serif;font-weight:700;font-size:.92rem;
+cursor:pointer;transition:all .2s;margin-top:16px;
+}
+.btn-submit:hover{opacity:.92;transform:translateY(-1px);}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.form-err{color:var(--red);font-size:.8rem;margin-top:8px;min-height:18px;}
+
+/* CGV */
+.cgv-wrap{margin-top:14px;font-size:.78rem;color:var(--text3);display:none;}
+.cgv-wrap label{display:flex;align-items:flex-start;gap:8px;cursor:pointer;line-height:1.5;}
+.cgv-wrap input[type=checkbox]{margin-top:2px;accent-color:var(--primary);}
+.cgv-wrap a{color:var(--text2);text-decoration:underline;cursor:pointer;}
+
+/* ÉTATS */
+.state-box{text-align:center;padding:60px 20px;}
+.state-box h2{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;color:var(--text);margin-bottom:10px;}
+.state-icon{font-size:2.8rem;margin-bottom:14px;}
+.state-box p{color:var(--text2);font-size:.88rem;line-height:1.6;}
+
+/* SUCCESS */
+.success-card{
+background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+padding:24px;text-align:center;margin-top:20px;
+}
+
+/* LEGAL */
+.legal-overlay{
+display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+z-index:100;justify-content:center;align-items:flex-start;
+padding:40px 20px;overflow-y:auto;
+}
+.legal-modal{
+background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+padding:24px;max-width:560px;width:100%;
+}
+.legal-modal h3{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;color:var(--text);margin-bottom:14px;}
+.legal-body{font-size:.8rem;color:var(--text2);line-height:1.8;white-space:pre-wrap;max-height:50vh;overflow-y:auto;}
+
+@media(max-width:500px){
+.fi-row{grid-template-columns:1fr;}
+.pay-options{grid-template-columns:1fr;}
+.hours-grid{grid-template-columns:repeat(3,1fr);}
+}
+</style>
+</head>
+<body>
+
+<!-- Legal overlay -->
+<div id="legal-overlay" class="legal-overlay" onclick="closeLegalModal()">
+<div class="legal-modal" onclick="event.stopPropagation()">
+<h3 id="legal-title">Document</h3>
+<div class="legal-body" id="legal-body"></div>
+<button onclick="closeLegalModal()" style="margin-top:14px;padding:8px 18px;background:var(--btn-bg);color:var(--btn-text);border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;">Fermer</button>
+</div>
+</div>
+
+<!-- Header -->
+<header class="res-header">
+<div class="res-logo">
+<div class="lb">WD</div>
+<div class="ln">Wash<span>Desk</span></div>
+</div>
+<div class="res-powered">Propulsé par <a href="https://washdesk.fr" target="_blank">WashDesk</a></div>
+</header>
+
+<!-- States -->
+<div id="state-loading" class="state-box">
+<div class="state-icon">⏳</div>
+<p>Chargement de la page...</p>
+</div>
+
+<div id="state-error" style="display:none;" class="state-box">
+<div class="state-icon">❌</div>
+<h2>Page introuvable</h2>
+<p>Cette page de réservation n'existe pas ou a été désactivée.</p>
+</div>
+
+<div id="state-inactive" style="display:none;" class="state-box">
+<div class="state-icon">🔒</div>
+<h2>Réservation indisponible</h2>
+<p>Les réservations en ligne ne sont pas disponibles pour le moment.<br>Contactez directement le professionnel.</p>
+</div>
+
+<!-- Content -->
+<div id="state-content" style="display:none;">
+<div class="res-main">
+
+<!-- Biz card -->
+<div class="biz-card">
+<div class="biz-logo" id="biz-logo">WD</div>
+<div style="flex:1;min-width:0;">
+<div class="biz-name" id="biz-name">Professionnel du lavage auto</div>
+<div class="biz-msg" id="biz-msg"></div>
+<div class="biz-info" id="biz-info"></div>
+</div>
+</div>
+
+<div id="booking-form">
+
+<!-- Formules -->
+<div class="sec-title">Choisissez votre prestation</div>
+<div class="formule-grid" id="formule-grid"></div>
+
+<!-- Calendrier -->
+<div class="sec-title">Choisissez votre date</div>
+<div class="cal-wrap">
+<div class="cal-nav">
+<button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+<div class="cal-title" id="cal-title"></div>
+<button class="cal-nav-btn" onclick="calNav(1)">›</button>
+</div>
+<div class="cal-grid" style="margin-bottom:4px;">
+<div class="cal-dow">LUN</div><div class="cal-dow">MAR</div><div class="cal-dow">MER</div>
+<div class="cal-dow">JEU</div><div class="cal-dow">VEN</div><div class="cal-dow">SAM</div><div class="cal-dow">DIM</div>
+</div>
+<div class="cal-grid" id="cal-days"></div>
+<div class="cal-legend">
+<div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--primary);"></div>Sélectionné</div>
+<div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--gold);"></div>Partiellement pris</div>
+<div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--red);"></div>Indisponible</div>
+</div>
+</div>
+<input type="hidden" id="f-date">
+
+<!-- Horaires -->
+<div id="hours-section" style="display:none;">
+<div class="sec-title">Choisissez un horaire</div>
+<div class="hours-grid" id="hours-grid"></div>
+</div>
+<input type="hidden" id="f-heure" value="09:00">
+
+<!-- Formulaire client -->
+<div class="sec-title">Vos informations</div>
+<div class="res-form">
+<div class="fi-row">
+<div class="fi"><label>Prénom *</label><input id="f-prenom" placeholder="Jean"></div>
+<div class="fi"><label>Nom *</label><input id="f-nom" placeholder="Dupont"></div>
+</div>
+<div class="fi"><label>Email *</label><input id="f-email" type="email" placeholder="jean@email.fr"></div>
+<div class="fi"><label>Téléphone *</label><input id="f-tel" type="tel" placeholder="06 00 00 00 00"></div>
+<div class="fi" id="field-vehicule"><label>Véhicule</label><input id="f-vehicule" placeholder="Marque, modèle, couleur..."></div>
+<div class="fi" id="field-adresse-client" style="display:none;"><label>Votre adresse *</label><input id="f-adresse-client" placeholder="123 rue Exemple, 69001 Lyon"></div>
+<div class="fi"><label>Message (optionnel)</label><textarea id="f-message" rows="3" placeholder="Informations complémentaires..."></textarea></div>
+
+<!-- Paiement -->
+<div id="pay-section" style="display:none;">
+<div class="sec-title" style="margin-top:14px;">Mode de paiement</div>
+<div class="pay-options" id="pay-options">
+<div class="pay-opt selected" id="pay-opt-later" onclick="selectPayMode('later')">
+<div class="pay-opt-label">💳 Payer après</div>
+<div class="pay-opt-desc">Réglez à la prestation</div>
+</div>
+<div class="pay-opt" id="pay-opt-now" onclick="selectPayMode('now')">
+<div class="pay-opt-label">🔒 Payer maintenant</div>
+<div class="pay-opt-desc">Paiement sécurisé en ligne</div>
+</div>
+</div>
+</div>
+
+<!-- CGV -->
+<div class="cgv-wrap" id="cgv-wrap" style="display:block;">
+<label>
+<input type="checkbox" id="cgv-check">
+<span>J'accepte les <a onclick="showLegalModal('cgv')">Conditions Générales de Vente</a> de <span id="cgv-company-name">l'entreprise</span></span>
+</label>
+</div>
+
+<div class="form-err" id="form-err"></div>
+<button class="btn-submit" id="submit-btn" onclick="submitReservation()">Envoyer ma demande de réservation</button>
+</div>
+
+</div><!-- /booking-form -->
+
+<!-- Succès — EN DEHORS de booking-form -->
+<div id="state-success" class="success-card" style="display:none;">
+<div class="state-icon">✅</div>
+<h2 style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;color:var(--text);margin-bottom:8px;">Demande envoyée !</h2>
+<p style="color:var(--text2);font-size:.85rem;" id="success-detail">Votre demande a bien été reçue. Vous serez contacté(e) pour confirmation.</p>
+</div>
+</div><!-- /res-main -->
+</div><!-- /state-content -->
+
+<script>
+const firebaseConfig={apiKey:"AIzaSyAcY6OFPxuvJrxvd0SudOy_EIvfc3XnKnM",authDomain:"cleancar-lyon.firebaseapp.com",projectId:"cleancar-lyon",storageBucket:"cleancar-lyon.firebasestorage.app",messagingSenderId:"1008040089051",appId:"1:1008040089051:web:b050481ca068e3faa083fe"};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
+
+let config=null;
+let selectedFormule=null;
+let calYear=new Date().getFullYear();
+let calMonth=new Date().getMonth();
+let selectedDate=null;
+let selectedPayMode='later';
+
+function show(id){
+['state-loading','state-error','state-inactive','state-content'].forEach(s=>{
+document.getElementById(s).style.display=s===id?'block':'none';
+});
+}
+
+async function loadPage(){
+const params=new URLSearchParams(window.location.search);
+const uid=params.get('uid');
+const slug=params.get('slug');
+try{
+if(uid){
+const doc=await db.collection('reservations_config').doc(uid).get();
+if(doc.exists){config=doc.data();if(!config.active){show('state-inactive');return;}renderPage();show('state-content');return;}
+}
+if(slug){
+const snap=await db.collection('reservations_config').where('slug','==',slug).limit(1).get();
+if(!snap.empty){config=snap.docs[0].data();if(!config.active){show('state-inactive');return;}renderPage();show('state-content');return;}
+}
+show('state-error');
+}catch(e){console.error(e);show('state-error');}
+}
+
+function renderPage(){
+// Appliquer le thème depuis la config
+if(config.modeDark===false){
+document.body.classList.add('light-mode');
+}else{
+document.body.classList.remove('light-mode');
+}
+const company=config.company||{};
+const logoEl=document.getElementById('biz-logo');
+if(company.logo){logoEl.innerHTML=`<img src="${company.logo}" alt="logo" style="width:100%;height:100%;object-fit:cover;">`;}
+else{logoEl.textContent=(company.nomEntreprise||'WD').slice(0,2).toUpperCase();}
+document.getElementById('biz-name').textContent=company.nomEntreprise||'Professionnel du lavage auto';
+document.getElementById('biz-msg').textContent=config.message||'Réservez votre prestation en quelques clics.';
+document.title='Réservation — '+(company.nomEntreprise||'WashDesk');
+
+// Infos contact
+const infos=[];
+if(company.tel)infos.push('📞 '+company.tel);
+if(company.email)infos.push('📧 '+company.email);
+const isMobile=config.mode==='mobile'||config.mode==='les-deux';
+if(!isMobile&&!config.masquerAdresse){
+const adresse=[config.adresse,config.ville,config.cp].filter(Boolean).join(', ');
+if(adresse)infos.push('📍 '+adresse);
+}
+document.getElementById('biz-info').innerHTML=infos.map(i=>`<span>${i}</span>`).join('');
+
+// Moyens de paiement acceptés
+const pm=config.paymentMethods||{};
+const pmLabels={especes:'💵 Espèces',cb:'💳 CB sur place',virement:'🏦 Virement',cheque:'📝 Chèque',paypal:'🅿️ PayPal'};
+const pmActive=Object.entries(pmLabels).filter(([k])=>pm[k]).map(([,v])=>v);
+if(pmActive.length){
+const pmEl=document.createElement('div');
+pmEl.style.cssText='margin-top:10px;padding-top:10px;border-top:1px solid var(--border);';
+pmEl.innerHTML=`<div style="font-size:.72rem;color:var(--text3);margin-bottom:6px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Paiements acceptés</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${pmActive.map(p=>`<span style="font-size:.76rem;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 8px;">${p}</span>`).join('')}</div>`;
+document.querySelector('.biz-card').appendChild(pmEl);
+}
+
+// Champ adresse client si déplacement
+if(isMobile)document.getElementById('field-adresse-client').style.display='block';
+
+// CGV
+if((config.mentionsLegales||{}).cgv){
+document.getElementById('cgv-wrap').style.display='block';
+document.getElementById('cgv-company-name').textContent=company.nomEntreprise||"l'entreprise";
+}
+
+renderFormules();
+renderCalendar();
+checkPaymentAvailable();
+checkPaymentReturn();
+}
+
+function renderFormules(){
+const grid=document.getElementById('formule-grid');
+const formules=config.formules||[];
+if(!formules.length){
+grid.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);font-size:.84rem;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);">Aucune prestation disponible pour le moment.</div>';
+return;
+}
+grid.innerHTML=formules.map((f,i)=>`
+<div class="formule-card" id="fc-${i}" onclick="selectFormule(${i})">
+<div class="formule-header">
+<div style="flex:1;min-width:0;">
+<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+<div class="formule-name">${f.nom}</div>
+${f.description?`<div class="formule-info-btn" onclick="event.stopPropagation();toggleDetail(${i})" title="Voir le détail">ℹ</div>`:''}
+</div>
+</div>
+<div class="formule-meta">
+${f.duree?`<span class="formule-duree">⏱ ${Math.floor(f.duree/60)>0?Math.floor(f.duree/60)+'h':''}${f.duree%60>0?f.duree%60+'min':''}</span>`:''}
+<span class="formule-price">${f.prixTTC?f.prixTTC.toFixed(2).replace('.',',')+'€':''}</span>
+<div class="formule-check" id="fcheck-${i}"></div>
+</div>
+</div>
+${f.description?`<div class="formule-detail" id="fdetail-${i}">${f.description}</div>`:''}
+</div>`).join('');
+}
+
+function toggleDetail(i){
+const card=document.getElementById('fc-'+i);
+if(card)card.classList.toggle('expanded');
+}
+
+function selectFormule(i){
+selectedFormule=i;
+document.querySelectorAll('.formule-card').forEach((c,j)=>{
+c.classList.toggle('selected',j===i);
+const ck=document.getElementById('fcheck-'+j);
+if(ck)ck.textContent=j===i?'✓':'';
+});
+document.getElementById('form-err').textContent='';
+}
+
+// ═══ CALENDRIER ═══
+function calNav(dir){
+calMonth+=dir;
+if(calMonth>11){calMonth=0;calYear++;}
+if(calMonth<0){calMonth=11;calYear--;}
+renderCalendar();
+}
+
+function renderCalendar(){
+const mois=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+document.getElementById('cal-title').textContent=mois[calMonth]+' '+calYear;
+
+const today=new Date();today.setHours(0,0,0,0);
+const minDate=new Date(today);minDate.setDate(minDate.getDate()+(config.delai||1));
+const todayStr=today.toISOString().split('T')[0];
+
+const busyDates=config.busyDates||[];
+const indispos=config.indispos||[];
+function isIndispo(ds){return indispos.some(i=>ds>=i.from&&ds<=i.to);}
+function getBusy(ds){return busyDates.filter(b=>b.date===ds);}
+
+const firstDay=new Date(calYear,calMonth,1).getDay();
+const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+const daysInPrev=new Date(calYear,calMonth,0).getDate();
+const offset=(firstDay+6)%7;
+
+let html='';
+for(let i=offset-1;i>=0;i--){html+=`<div class="cal-day other-month"><div class="cal-day-num">${daysInPrev-i}</div></div>`;}
+
+for(let d=1;d<=daysInMonth;d++){
+const ds=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+const dDate=new Date(ds+'T12:00:00');
+const isPast=dDate<minDate;
+const indispo=isIndispo(ds);
+const busy=getBusy(ds);
+const maxPDay=config.maxPerDay||5;
+const isFull=busy.length>=maxPDay;
+const isToday=ds===todayStr;
+const isSel=ds===selectedDate;
+
+let cls='cal-day';
+if(isSel)cls+=' selected';
+else if(isToday)cls+=' today';
+if(isPast)cls+=' past';
+else if(indispo||isFull)cls+=' unavail';
+else if(busy.length>0)cls+=' busy-partial';
+
+const dot=!isSel&&busy.length>0&&!indispo&&!isFull?`<div class="cal-dot" style="background:${busy.length>=maxPDay-1?'var(--red)':'var(--gold)'};"></div>`:'';
+const tag=indispo?`<div class="cal-unavail-tag">INDISPO</div>`:isFull?`<div class="cal-unavail-tag">COMPLET</div>`:'';
+
+html+=`<div class="${cls}" ${(!isPast&&!indispo&&!isFull)?`onclick="calSelect('${ds}')"`:''}>
+<div class="cal-day-num">${d}</div>${dot}${tag}
+</div>`;
+}
+const total=offset+daysInMonth;const rem=total%7===0?0:7-total%7;
+for(let d=1;d<=rem;d++){html+=`<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;}
+document.getElementById('cal-days').innerHTML=html;
+}
+
+function calSelect(ds){
+selectedDate=ds;
+document.getElementById('f-date').value=ds;
+renderCalendar();
+renderHours();
+document.getElementById('hours-section').style.display='block';
+// Scroll to hours
+setTimeout(()=>document.getElementById('hours-section').scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+}
+
+function renderHours(){
+const hours=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
+const busyDates=config.busyDates||[];
+const takenHours=busyDates.filter(b=>b.date===selectedDate).map(b=>b.heure);
+const cur=document.getElementById('f-heure').value||'09:00';
+document.getElementById('hours-grid').innerHTML=hours.map(h=>{
+const taken=takenHours.includes(h);
+const sel=h===cur&&!taken;
+return `<div class="hour-btn${sel?' selected':''}${taken?' taken':''}" onclick="${taken?'':'selectHour(\''+h+'\')'}">${h}${taken?'<br><span style="font-size:.62rem;color:var(--text3);">Pris</span>':''}</div>`;
+}).join('');
+}
+
+function selectHour(h){
+document.getElementById('f-heure').value=h;
+renderHours();
+}
+
+// ═══ PAIEMENT ═══
+async function checkPaymentAvailable(){
+if(!config.uid)return;
+try{
+const snap=await db.collection('users_profiles').doc(config.uid).get();
+const data=snap.data()||{};
+const stripeOk=data.stripeConnectStatus==='active'||data.stripeConnectStatus==='pending';
+if(stripeOk||config.paymentRequired){
+const paySection=document.getElementById('pay-section');
+if(paySection)paySection.style.display='block';
+if(config.paymentRequired){
+document.getElementById('pay-options').innerHTML=`
+<div class="pay-opt selected" style="grid-column:1/-1;cursor:default;">
+<div class="pay-opt-label">🔒 Paiement en ligne requis</div>
+<div class="pay-opt-desc">Le paiement est requis pour confirmer votre réservation</div>
+</div>`;
+selectedPayMode='now';
+document.getElementById('submit-btn').textContent='Réserver et payer en ligne';
+}
+}
+}catch(e){console.warn('checkPaymentAvailable:',e);}
+}
+
+function selectPayMode(mode){
+selectedPayMode=mode;
+document.getElementById('pay-opt-later')?.classList.toggle('selected',mode==='later');
+document.getElementById('pay-opt-now')?.classList.toggle('selected',mode==='now');
+document.getElementById('submit-btn').textContent=mode==='now'?'Réserver et payer en ligne':'Envoyer ma demande de réservation';
+}
+
+// ═══ SOUMISSION ═══
+async function submitReservation(){
+const prenom=document.getElementById('f-prenom').value.trim();
+const nom=document.getElementById('f-nom').value.trim();
+const email=document.getElementById('f-email').value.trim();
+const tel=document.getElementById('f-tel').value.trim();
+const vehicule=document.getElementById('f-vehicule').value.trim();
+const adresseClient=document.getElementById('f-adresse-client')?.value.trim()||'';
+const date=document.getElementById('f-date').value;
+const heure=document.getElementById('f-heure').value;
+const message=document.getElementById('f-message').value.trim();
+const err=document.getElementById('form-err');
+const btn=document.getElementById('submit-btn');
+err.textContent='';
+
+if(selectedFormule===null){err.textContent='Veuillez sélectionner une prestation.';return;}
+if(!prenom||!nom){err.textContent='Prénom et nom obligatoires.';return;}
+if(!email||!email.includes('@')){err.textContent='Email invalide.';return;}
+if(!tel){err.textContent='Téléphone obligatoire.';return;}
+if(!date){err.textContent='Veuillez choisir une date dans le calendrier.';return;}
+const isMobile=config.mode==='mobile'||config.mode==='les-deux';
+if(isMobile&&!adresseClient){err.textContent='Votre adresse est requise pour le déplacement.';return;}
+const cgvCheck=document.getElementById('cgv-check');
+if(cgvCheck&&!cgvCheck.checked){err.textContent='Vous devez accepter les CGV pour continuer.';return;}
+
+btn.disabled=true;btn.textContent='Envoi en cours...';
+const formule=(config.formules||[])[selectedFormule];
+
+try{
+const demandeData={
+uid:config.uid,
+nomClient:prenom+' '+nom,prenom,nom,
+email,telephone:tel,vehicule,adresseClient,
+formule:formule?.nom||'',formuleId:formule?.id||null,
+prixEstime:formule?.prixTTC||0,
+dateSouhaitee:date,heureSouhaitee:heure,
+message,statut:'en_attente',
+cgvAcceptees:!!cgvCheck?.checked,
+createdAt:new Date().toISOString()
+};
+
+// Écriture demande
+let demandeRef;
+try{
+demandeRef=await db.collection('reservations_demandes').add(demandeData);
+}catch(e){
+console.error('Erreur Firestore demande:',e.code,e.message);
+err.textContent='Erreur ('+e.code+'). Vérifiez les règles Firestore.';
+btn.disabled=false;btn.textContent='Envoyer ma demande de réservation';
+return;
+}
+
+// Créer prospect (non bloquant)
+try{
+await db.collection('clients_prospects').add({
+uid:config.uid,nom:prenom+' '+nom,prenom,nomFamille:nom,
+email,telephone:tel,vehicule,adresse:adresseClient,
+demandeId:demandeRef.id,source:'reservation_en_ligne',
+createdAt:new Date().toISOString(),statut:'prospect'
+});
+}catch(e){console.warn('Prospect non créé:',e.code,e.message);}
+
+if(selectedPayMode==='now'){
+btn.textContent='Redirection vers le paiement...';
+const resp=await fetch('https://us-central1-cleancar-lyon.cloudfunctions.net/createConnectPayment',{
+method:'POST',headers:{'Content-Type':'application/json'},
+body:JSON.stringify({uid:config.uid,amount:formule?.prixTTC||0,description:formule?.nom||'Prestation',successUrl:window.location.href+'?paid='+demandeRef.id,cancelUrl:window.location.href})
+});
+const data=await resp.json();
+if(data.url){window.location.href=data.url;return;}
+throw new Error(data.error||'Erreur paiement');
+}
+
+document.getElementById('booking-form').style.display='none';
+document.getElementById('state-success').style.display='block';
+document.getElementById('success-detail').textContent=
+`Prestation : ${formule?.nom||'—'} · ${new Date(date+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} à ${heure}`;
+
+}catch(e){
+console.error('Erreur submitReservation:',e.code,e.message);
+err.textContent='Erreur ('+e.code+'). Veuillez réessayer.';
+btn.disabled=false;btn.textContent='Envoyer ma demande de réservation';
+}
+}
+
+async function checkPaymentReturn(){
+const params=new URLSearchParams(window.location.search);
+const paidId=params.get('paid');
+if(!paidId)return;
+window.history.replaceState({},'',window.location.pathname);
+try{await db.collection('reservations_demandes').doc(paidId).update({statut:'payee',paidAt:new Date().toISOString()});}catch(e){}
+document.getElementById('booking-form').style.display='none';
+document.getElementById('state-success').style.display='block';
+document.getElementById('success-detail').textContent='Paiement confirmé ! Votre réservation est enregistrée.';
+}
+
+function showLegalModal(type){
+const ml=config.mentionsLegales||{};
+const titles={cgv:'CGV — Conditions Générales de Vente',confidentialite:'Politique de confidentialité'};
+document.getElementById('legal-title').textContent=titles[type]||type;
+document.getElementById('legal-body').textContent=ml[type]||'Document non disponible.';
+document.getElementById('legal-overlay').style.display='flex';
+}
+function closeLegalModal(){document.getElementById('legal-overlay').style.display='none';}
+
+loadPage();
+</script>
+</body>
+</html>
